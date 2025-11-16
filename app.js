@@ -49,7 +49,7 @@
 
   // ---------- IndexedDB minimal wrapper ----------
   const DB_NAME = 'inventory2';
-  const DB_VER = 1;
+  const DB_VER = 2;
   const STORES = {
     products: 'products',
     customers: 'customers',
@@ -64,26 +64,48 @@
       const req = indexedDB.open(DB_NAME, DB_VER)
       req.onupgradeneeded = (e) => {
         const db = req.result
+        // products
+        let ps
         if(!db.objectStoreNames.contains('products')){
-          const s = db.createObjectStore('products', { keyPath: 'id', autoIncrement: true })
-          s.createIndex('by_partNumber', 'partNumber', { unique: true })
-          s.createIndex('by_name', 'name', { unique: false })
+          ps = db.createObjectStore('products', { keyPath: 'id', autoIncrement: true })
+        } else {
+          ps = req.transaction.objectStore('products')
         }
+        if(ps){
+          if(!ps.indexNames.contains('by_partNumber')) ps.createIndex('by_partNumber', 'partNumber', { unique: true })
+          if(!ps.indexNames.contains('by_name')) ps.createIndex('by_name', 'name', { unique: false })
+        }
+
+        // customers
         if(!db.objectStoreNames.contains('customers')){
           db.createObjectStore('customers', { keyPath: 'id', autoIncrement: true })
         }
+        // suppliers
         if(!db.objectStoreNames.contains('suppliers')){
           db.createObjectStore('suppliers', { keyPath: 'id', autoIncrement: true })
         }
+        // invoices
+        let invs
         if(!db.objectStoreNames.contains('invoices')){
-          const s = db.createObjectStore('invoices', { keyPath: 'id', autoIncrement: true })
-          s.createIndex('by_number', 'number', { unique: false })
-          s.createIndex('by_date', 'date', { unique: false })
+          invs = db.createObjectStore('invoices', { keyPath: 'id', autoIncrement: true })
+        } else {
+          invs = req.transaction.objectStore('invoices')
         }
+        if(invs){
+          if(!invs.indexNames.contains('by_number')) invs.createIndex('by_number', 'number', { unique: false })
+          if(!invs.indexNames.contains('by_date')) invs.createIndex('by_date', 'date', { unique: false })
+        }
+        // invoiceItems
+        let items
         if(!db.objectStoreNames.contains('invoiceItems')){
-          const s = db.createObjectStore('invoiceItems', { keyPath: 'id', autoIncrement: true })
-          s.createIndex('by_invoiceId', 'invoiceId', { unique: false })
+          items = db.createObjectStore('invoiceItems', { keyPath: 'id', autoIncrement: true })
+        } else {
+          items = req.transaction.objectStore('invoiceItems')
         }
+        if(items){
+          if(!items.indexNames.contains('by_invoiceId')) items.createIndex('by_invoiceId', 'invoiceId', { unique: false })
+        }
+        // settings
         if(!db.objectStoreNames.contains('settings')){
           db.createObjectStore('settings', { keyPath: 'key' })
         }
@@ -98,44 +120,68 @@
   }
 
   function getAll(store){
-    return new Promise((resolve, reject) => {
-      const req = tx(store).objectStore(store).getAll()
-      req.onsuccess = () => resolve(req.result || [])
-      req.onerror = () => reject(req.error)
+    return new Promise(async (resolve, reject) => {
+      try{
+        await ensureDB()
+        const req = tx(store).objectStore(store).getAll()
+        req.onsuccess = () => resolve(req.result || [])
+        req.onerror = () => { console.error('IndexedDB getAll error', store, req.error); reject(req.error) }
+      }catch(e){ console.error('IndexedDB getAll exception', store, e); reject(e) }
     })
   }
 
   function add(store, value){
-    return new Promise((resolve, reject) => {
-      const req = tx(store, 'readwrite').objectStore(store).add(value)
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => reject(req.error)
+    return new Promise(async (resolve, reject) => {
+      try{
+        await ensureDB()
+        const req = tx(store, 'readwrite').objectStore(store).add(value)
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = () => { console.error('IndexedDB add error', store, value, req.error); reject(req.error) }
+      }catch(e){ console.error('IndexedDB add exception', store, value, e); reject(e) }
     })
   }
 
   function put(store, value){
-    return new Promise((resolve, reject) => {
-      const req = tx(store, 'readwrite').objectStore(store).put(value)
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => reject(req.error)
+    return new Promise(async (resolve, reject) => {
+      try{
+        await ensureDB()
+        const req = tx(store, 'readwrite').objectStore(store).put(value)
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = () => { console.error('IndexedDB put error', store, value, req.error); reject(req.error) }
+      }catch(e){ console.error('IndexedDB put exception', store, value, e); reject(e) }
     })
   }
 
   function del(store, key){
-    return new Promise((resolve, reject) => {
-      const req = tx(store, 'readwrite').objectStore(store).delete(key)
-      req.onsuccess = () => resolve()
-      req.onerror = () => reject(req.error)
+    return new Promise(async (resolve, reject) => {
+      try{
+        await ensureDB()
+        const req = tx(store, 'readwrite').objectStore(store).delete(key)
+        req.onsuccess = () => resolve()
+        req.onerror = () => reject(req.error)
+      }catch(e){ reject(e) }
     })
   }
 
+  async function ensureDB(){
+    if(!state.db){
+      try{
+        state.db = await openDB()
+        console.log('[DB] Opened lazily')
+      }catch(e){ console.error('[DB] Failed to open', e); throw e }
+    }
+  }
+
   function getByIndex(store, indexName, query){
-    return new Promise((resolve, reject) => {
-      const os = tx(store).objectStore(store)
-      const idx = os.index(indexName)
-      const req = idx.get(query)
-      req.onsuccess = () => resolve(req.result || null)
-      req.onerror = () => reject(req.error)
+    return new Promise(async (resolve, reject) => {
+      try{
+        await ensureDB()
+        const os = tx(store).objectStore(store)
+        const idx = os.index(indexName)
+        const req = idx.get(query)
+        req.onsuccess = () => resolve(req.result || null)
+        req.onerror = () => reject(req.error)
+      }catch(e){ reject(e) }
     })
   }
 
@@ -243,9 +289,18 @@
 
   // ---------- Inventory UI ----------
   function renderInventory(list=state.products){
+    console.log('[Render] renderInventory called, state.products.length:', state.products.length)
     const q = qs('#inv-search').value.trim().toLowerCase()
     const rows = list.filter(p => !q || [p.partNumber,p.name,p.supplier].join(' ').toLowerCase().includes(q))
-    qs('#tbl-products tbody').innerHTML = rows.map(productToRow).join('')
+    console.log('[Render] Filtered rows:', rows.length, 'search query:', q)
+    const html = rows.map(productToRow).join('')
+    console.log('[Render] Generated HTML length:', html.length)
+    const tbody = qs('#tbl-products tbody')
+    console.log('[Render] tbody element:', tbody ? 'FOUND' : 'NULL')
+    if(tbody) {
+      tbody.innerHTML = html
+      console.log('[Render] tbody.innerHTML set, children count:', tbody.children.length)
+    }
     qs('#stat-products').textContent = `${state.products.length} products`
     const lowCount = state.products.filter(p => (p.stock||0) <= ((p.lowThreshold ?? state.settings.lowStockThreshold) || 0)).length
     qs('#stat-lowstock').textContent = `${lowCount} low stock`
@@ -259,6 +314,7 @@
   }
 
   function openProductDialog(p){
+    console.log('[ProductDialog] Opening', p ? 'EDIT' : 'ADD', p)
     const dlg = qs('#dlg-product')
     qs('#dlg-product-title').textContent = p? 'Edit Product' : 'Add Product'
     qs('#product-id').value = p?.id || ''
@@ -271,6 +327,7 @@
     qs('#product-lowThreshold').value = p?.lowThreshold ?? ''
     qs('#product-notes').value = p?.notes || ''
     dlg.showModal()
+    console.log('[ProductDialog] Dialog shown')
   }
 
   async function saveProductFromDialog(){
@@ -287,10 +344,64 @@
       notes: qs('#product-notes').value.trim(),
     }
     if(!p.partNumber || !p.name){ alert('Part number and Name are required.'); return }
-    if(id){ await put(STORES.products, p) } else { p.id = await add(STORES.products, p) }
-    const idx = state.products.findIndex(x=>x.id===p.id)
-    if(idx>=0) state.products[idx]=p; else state.products.push(p)
+    try{
+      await ensureDB()
+      console.log('[Product] Saving', p)
+      // Uniqueness pre-check to give friendlier message than generic constraint
+      let existing = null
+      try{
+        existing = await getByIndex(STORES.products, 'by_partNumber', p.partNumber)
+      }catch(_){
+        // Fallback if index missing (older DB): scan all
+        const all = await getAll(STORES.products)
+        existing = all.find(r => String(r.partNumber||'').toLowerCase() === p.partNumber.toLowerCase()) || null
+      }
+      if(existing && existing.id !== id){
+        alert('Part Number already exists. Please edit the existing product or choose a different Part Number.')
+        return
+      }
+      if(id){
+        await put(STORES.products, p)
+      } else {
+        const toAdd = { ...p }
+        delete toAdd.id
+        p.id = await add(STORES.products, toAdd)
+      }
+      console.log('[Product] Saved with id', p.id)
+    }catch(e){
+      console.error('Product save error', e)
+      const msg = e?.name === 'ConstraintError'
+        ? 'Part Number already exists.'
+        : 'Save failed: ' + (e?.message || e)
+      alert(msg)
+      return
+    }
+    console.log('[Product] Clearing search and reloading...')
+    // Clear search so the new item isn't hidden by filters
+    const invSearch = qs('#inv-search'); if(invSearch) invSearch.value = ''
+    await reloadProducts()
+    console.log('[Product] Activating inventory view...')
+    if(typeof activateView === 'function') activateView('inventory')
+    // Try to bring the saved row into view
+    setTimeout(()=>{
+      const tr = qs(`#tbl-products tbody tr[data-id="${p.id}"]`)
+      if(tr){ 
+        console.log('[Product] Scrolling to new row', p.id)
+        tr.scrollIntoView({ block:'center' })
+      } else {
+        console.warn('[Product] Could not find row for id', p.id)
+      }
+    }, 50)
+  }
+
+  async function reloadProducts(){
+    try{
+      await ensureDB()
+      state.products = await getAll(STORES.products)
+      console.log('[Product] Reloaded list, count', state.products.length, 'items:', state.products.map(p => p.partNumber))
+    }catch(e){ console.error('Reload products failed', e) }
     renderInventory()
+    console.log('[Product] renderInventory completed')
   }
 
   async function applyStock(delta){
@@ -339,9 +450,9 @@
   }
 
   async function saveCustomerFromDialog(){
+    console.log('[Customer] Saving...')
     const id = Number(qs('#customer-id').value)||null
     const c = {
-      id: id||undefined,
       name: qs('#customer-name').value.trim(),
       phone: qs('#customer-phone').value.trim(),
       email: qs('#customer-email').value.trim(),
@@ -350,10 +461,27 @@
       notes: qs('#customer-notes').value.trim(),
     }
     if(!c.name){ alert('Name required'); return }
-    if(id){ await put(STORES.customers, c) } else { c.id = await add(STORES.customers, c) }
-    const idx = state.customers.findIndex(x=>x.id===c.id)
-    if(idx>=0) state.customers[idx]=c; else state.customers.push(c)
+    console.log('[Customer] Data:', c)
+    try{
+      await ensureDB()
+      if(id){ 
+        c.id = id
+        await put(STORES.customers, c)
+        console.log('[Customer] Updated id:', id)
+      } else { 
+        const newId = await add(STORES.customers, c)
+        c.id = newId
+        console.log('[Customer] Added with id:', c.id)
+      }
+    }catch(e){ console.error('Customer save error', e); alert('Failed to save customer'); return }
+    // Clear search so new entry is visible
+    const cs = qs('#cust-search'); if(cs) cs.value = ''
+    // Refresh list from DB to avoid stale state
+    console.log('[Customer] Reloading from DB...')
+    try{ state.customers = await getAll(STORES.customers) }catch(e){ console.error('[Customer] Reload failed', e) }
+    console.log('[Customer] Count:', state.customers.length)
     renderCustomers()
+    console.log('[Customer] Save completed')
   }
 
   function renderSuppliers(){
@@ -385,9 +513,9 @@
   }
 
   async function saveSupplierFromDialog(){
+    console.log('[Supplier] Saving...')
     const id = Number(qs('#supplier-id').value)||null
     const s = {
-      id: id||undefined,
       name: qs('#supplier-name').value.trim(),
       phone: qs('#supplier-phone').value.trim(),
       email: qs('#supplier-email').value.trim(),
@@ -395,10 +523,25 @@
       notes: qs('#supplier-notes').value.trim(),
     }
     if(!s.name){ alert('Name required'); return }
-    if(id){ await put(STORES.suppliers, s) } else { s.id = await add(STORES.suppliers, s) }
-    const idx = state.suppliers.findIndex(x=>x.id===s.id)
-    if(idx>=0) state.suppliers[idx]=s; else state.suppliers.push(s)
+    console.log('[Supplier] Data:', s)
+    try{
+      await ensureDB()
+      if(id){ 
+        s.id = id
+        await put(STORES.suppliers, s)
+        console.log('[Supplier] Updated id:', id)
+      } else { 
+        const newId = await add(STORES.suppliers, s)
+        s.id = newId
+        console.log('[Supplier] Added with id:', s.id)
+      }
+    }catch(e){ console.error('Supplier save error', e); alert('Failed to save supplier'); return }
+    const ss = qs('#supp-search'); if(ss) ss.value = ''
+    console.log('[Supplier] Reloading from DB...')
+    try{ state.suppliers = await getAll(STORES.suppliers) }catch(e){ console.error('[Supplier] Reload failed', e) }
+    console.log('[Supplier] Count:', state.suppliers.length)
     renderSuppliers()
+    console.log('[Supplier] Save completed')
   }
 
   // ---------- Billing ----------
@@ -450,14 +593,11 @@
     qs('#bill-price').value = ''
     updateBillTable()
   }
-
   async function saveInvoice(){
     if(!state.bill.lines.length){ alert('No items'); return }
     const customerId = Number(qs('#bill-customer').value)||null
     const date = qs('#bill-date').value || todayStr()
     const number = qs('#bill-number').value.trim() || `INV-${Date.now().toString().slice(-6)}`
-
-    // Check stock availability
     for(const ln of state.bill.lines){
       const p = state.products.find(pp=>pp.id===ln.productId)
       if(!p || (p.stock||0) < ln.qty){
@@ -465,20 +605,16 @@
         return
       }
     }
-
     const inv = { number, date, customerId, total: state.bill.lines.reduce((s,ln)=> s + ln.qty*ln.price, 0) }
     inv.id = await add(STORES.invoices, inv)
-
     for(const ln of state.bill.lines){
       const item = { invoiceId: inv.id, productId: ln.productId, partNumber: ln.partNumber, name: ln.name, qty: ln.qty, price: ln.price }
       item.id = await add(STORES.invoiceItems, item)
       state.invoiceItems.push(item)
-      // reduce stock
       const p = state.products.find(pp=>pp.id===ln.productId)
       p.stock = (p.stock||0) - ln.qty
       await put(STORES.products, p)
     }
-
     state.invoices.unshift({ ...inv })
     renderInvoices()
     renderInventory()
@@ -635,7 +771,6 @@
       for(const r of rows){
         const existing = state.products.find(p=> String(p.partNumber).toLowerCase() === String(r.partNumber).toLowerCase())
         const p = {
-          id: existing?.id,
           partNumber: r.partNumber,
           name: r.name,
           supplier: r.supplier,
@@ -645,23 +780,41 @@
           lowThreshold: r.lowThreshold? Number(r.lowThreshold): undefined,
           notes: r.notes||''
         }
-        if(existing){ await put(STORES.products, p) } else { p.id = await add(STORES.products, p) }
+        if(existing){ 
+          p.id = existing.id
+          await put(STORES.products, p)
+        } else { 
+          const newId = await add(STORES.products, p)
+          p.id = newId
+        }
       }
       await reloadProducts()
     }
     if(kind==='customers'){
       for(const r of rows){
         const existing = state.customers.find(c => c.name.toLowerCase() === String(r.name).toLowerCase())
-        const c = { id: existing?.id, name:r.name, phone:r.phone||'', email:r.email||'', address:r.address||'', taxId:r.taxId||'', notes:r.notes||'' }
-        if(existing){ await put(STORES.customers, c) } else { c.id = await add(STORES.customers, c) }
+        const c = { name:r.name, phone:r.phone||'', email:r.email||'', address:r.address||'', taxId:r.taxId||'', notes:r.notes||'' }
+        if(existing){ 
+          c.id = existing.id
+          await put(STORES.customers, c)
+        } else { 
+          const newId = await add(STORES.customers, c)
+          c.id = newId
+        }
       }
       renderCustomers()
     }
     if(kind==='suppliers'){
       for(const r of rows){
         const existing = state.suppliers.find(s => s.name.toLowerCase() === String(r.name).toLowerCase())
-        const s = { id: existing?.id, name:r.name, phone:r.phone||'', email:r.email||'', address:r.address||'', notes:r.notes||'' }
-        if(existing){ await put(STORES.suppliers, s) } else { s.id = await add(STORES.suppliers, s) }
+        const s = { name:r.name, phone:r.phone||'', email:r.email||'', address:r.address||'', notes:r.notes||'' }
+        if(existing){ 
+          s.id = existing.id
+          await put(STORES.suppliers, s)
+        } else { 
+          const newId = await add(STORES.suppliers, s)
+          s.id = newId
+        }
       }
       renderSuppliers()
     }
@@ -948,6 +1101,39 @@
     alert('Logo removed.')
   }
 
+  // ---------- Dev helpers ----------
+  async function addTestData(){
+    try{
+      await ensureDB()
+      const ts = Date.now()
+      // Supplier
+      let s = { name: `Test Supplier ${ts}`, phone:'', email:'', address:'', notes:'' }
+      s.id = await add(STORES.suppliers, s)
+      // Customer
+      let c = { name: `Test Customer ${ts}`, phone:'', email:'', address:'', taxId:'', notes:'' }
+      c.id = await add(STORES.customers, c)
+      // Product (unique part number)
+      let p = { partNumber:`TEST-${ts}`, name:`Test Part ${ts}`, supplier:s.name, cost:1, price:2, stock:3, lowThreshold:1, notes:'' }
+      p.id = await add(STORES.products, p)
+      // Reload
+      state.suppliers = await getAll(STORES.suppliers)
+      state.customers = await getAll(STORES.customers)
+      await reloadProducts()
+      renderCustomers(); renderSuppliers()
+      alert('Test data added successfully.')
+    }catch(e){ alert('Failed to add test data: '+ (e?.message||e)) }
+  }
+
+  async function resetDatabase(){
+    try{
+      if(state.db && state.db.close){ try{ state.db.close() }catch(_){}}
+      const req = indexedDB.deleteDatabase(DB_NAME)
+      req.onsuccess = () => { alert('Local database reset. The app will reload.'); location.reload() }
+      req.onerror = () => { alert('Failed to reset DB: '+ (req.error?.message||req.error)) }
+      req.onblocked = () => { alert('Reset blocked. Close other tabs of this app and try again.') }
+    }catch(e){ alert('Reset error: '+ (e?.message||e)) }
+  }
+
   // ---------- Theme ----------
   function applyTheme(theme){
     const t = (theme==='light') ? 'light' : 'dark'
@@ -987,7 +1173,14 @@
     })
     // Allow dialog form submit to close the dialog (returnValue 'ok') so close handler runs
     qs('#dlg-product').addEventListener('close', async (e)=>{
-      if(qs('#dlg-product').returnValue==='ok') await saveProductFromDialog()
+      console.log('[ProductDialog] Close event, returnValue:', qs('#dlg-product').returnValue)
+      if(qs('#dlg-product').returnValue==='ok'){
+        console.log('[ProductDialog] Calling saveProductFromDialog...')
+        await saveProductFromDialog()
+        console.log('[ProductDialog] Save completed')
+      } else {
+        console.log('[ProductDialog] Cancelled, not saving')
+      }
     })
     qs('#dlg-product button[value="cancel"]').addEventListener('click', ()=> qs('#dlg-product').close())
     qs('#btn-stock-in').addEventListener('click', ()=>{ qs('#dlg-stock-title').textContent='Stock In'; qs('#dlg-stock').dataset.delta = '1'; qs('#dlg-stock').showModal() })
@@ -1010,7 +1203,13 @@
         if(confirm('Delete customer?')) del(STORES.customers, id).then(()=> { state.customers = state.customers.filter(x=>x.id!==id); renderCustomers() })
       }
     })
-    qs('#dlg-customer').addEventListener('close', async ()=>{ if(qs('#dlg-customer').returnValue==='ok') await saveCustomerFromDialog() })
+    qs('#dlg-customer').addEventListener('close', async ()=>{ 
+      console.log('[CustomerDialog] Close event, returnValue:', qs('#dlg-customer').returnValue)
+      if(qs('#dlg-customer').returnValue==='ok') {
+        console.log('[CustomerDialog] Calling saveCustomerFromDialog...')
+        await saveCustomerFromDialog()
+      }
+    })
     qs('#dlg-customer button[value="cancel"]').addEventListener('click', ()=> qs('#dlg-customer').close())
 
     // Suppliers
@@ -1025,7 +1224,13 @@
         if(confirm('Delete supplier?')) del(STORES.suppliers, id).then(()=> { state.suppliers = state.suppliers.filter(x=>x.id!==id); renderSuppliers() })
       }
     })
-    qs('#dlg-supplier').addEventListener('close', async ()=>{ if(qs('#dlg-supplier').returnValue==='ok') await saveSupplierFromDialog() })
+    qs('#dlg-supplier').addEventListener('close', async ()=>{ 
+      console.log('[SupplierDialog] Close event, returnValue:', qs('#dlg-supplier').returnValue)
+      if(qs('#dlg-supplier').returnValue==='ok') {
+        console.log('[SupplierDialog] Calling saveSupplierFromDialog...')
+        await saveSupplierFromDialog()
+      }
+    })
     qs('#dlg-supplier button[value="cancel"]').addEventListener('click', ()=> qs('#dlg-supplier').close())
 
     // Billing
@@ -1110,6 +1315,8 @@
     qs('#btn-save-settings').addEventListener('click', saveSettings)
     qs('#btn-save-logo')?.addEventListener('click', saveLogoFromFile)
     qs('#btn-remove-logo')?.addEventListener('click', removeLogo)
+    qs('#btn-add-test-data')?.addEventListener('click', addTestData)
+    qs('#btn-reset-db')?.addEventListener('click', resetDatabase)
 
     // Theme toggle
     qs('#btn-theme')?.addEventListener('click', toggleTheme)
@@ -1117,6 +1324,20 @@
     // Login/Logout
     qs('#login-form')?.addEventListener('submit', handleLogin)
     qs('#btn-logout')?.addEventListener('click', handleLogout)
+
+    // Explicit dialog form submit handlers ensure close('ok') fires reliably
+    const fp = qs('#form-product'); if(fp){ fp.addEventListener('submit', e=>{ console.log('[ProductDialog] Form submit'); e.preventDefault(); const d=qs('#dlg-product'); d.close('ok'); }) }
+    const fc = qs('#form-customer'); if(fc){ fc.addEventListener('submit', e=>{ console.log('[CustomerDialog] Form submit'); e.preventDefault(); const d=qs('#dlg-customer'); d.close('ok'); }) }
+    const fsu = qs('#form-supplier'); if(fsu){ fsu.addEventListener('submit', e=>{ console.log('[SupplierDialog] Form submit'); e.preventDefault(); const d=qs('#dlg-supplier'); d.close('ok'); }) }
+  }
+
+  function activateView(name){
+    qsa('.tab').forEach(b=>{
+      if(b.dataset.view===name) b.classList.add('active'); else b.classList.remove('active')
+    })
+    qsa('.view').forEach(sec=>{
+      if(sec.id === `view-${name}`) sec.classList.add('active'); else sec.classList.remove('active')
+    })
   }
 
   // ---------- Barcode Scanner ----------
@@ -1243,6 +1464,7 @@
   // ---------- Init ----------
   async function initApp(){
     state.db = await openDB()
+    try{ console.log('[DB] opened version', state.db?.version) }catch(_){ }
     await loadSettings()
     await seedIfEmpty()
     await loadAll()
@@ -1251,12 +1473,20 @@
 
     // Register service worker for PWA/offline caching
     if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-      try{ await navigator.serviceWorker.register('./service-worker.js') }catch(e){ /* ignore */ }
+      try{ 
+        // Unregister old service workers and register fresh one with cache busting
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for(let reg of registrations) await reg.unregister();
+        await navigator.serviceWorker.register('./service-worker.js?v=3');
+        console.log('[SW] Service worker registered successfully');
+      }catch(e){ console.warn('[SW] Registration failed:', e); }
     }
   }
 
   async function init(){
     bindEvents()
+    // Open DB early so CRUD always has a live connection even before initApp
+    try{ if(!state.db) state.db = await openDB() }catch(e){ console.error('[DB] early open failed', e) }
     if(checkAuth()){
       showApp()
       await initApp()

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Quick Test</title>
+</head>
+<body>
+  <h1>CRUD Test</h1>
+  <div id="status">Testing...</div>
+  <button id="btnTest">Add Test Product</button>
+  <button id="btnShow">Show Products</button>
+  <div id="output" style="white-space: pre; font-family: monospace; margin-top: 20px;"></div>
+
+  <script>
+    const DB_NAME = 'inventory2';
+    const DB_VER = 2;
+    let db = null;
+
+    function log(msg) {
+      const out = document.getElementById('output');
+      out.textContent += msg + '\n';
+      console.log(msg);
+    }
+
+    async function openDB() {
+      return new Promise((resolve, reject) => {
+        log('Calling indexedDB.open...');
+        const req = indexedDB.open(DB_NAME, DB_VER);
+        
+        req.onupgradeneeded = (e) => {
+          log('onupgradeneeded fired, version: ' + e.oldVersion + ' -> ' + e.newVersion);
+          const db = req.result;
+          if (!db.objectStoreNames.contains('products')) {
+            log('Creating products object store...');
+            const ps = db.createObjectStore('products', { keyPath: 'id', autoIncrement: true });
+            ps.createIndex('by_partNumber', 'partNumber', { unique: true });
+            log('Object store created');
+          }
+        };
+        
+        req.onsuccess = () => {
+          log('onsuccess fired');
+          resolve(req.result);
+        };
+        
+        req.onerror = () => {
+          log('onerror fired: ' + req.error);
+          reject(req.error);
+        };
+        
+        req.onblocked = () => {
+          log('⚠️ onblocked fired - close other tabs using this database!');
+        };
+      });
+    }
+
+    async function addProduct(p) {
+      const tx = db.transaction('products', 'readwrite');
+      const store = tx.objectStore('products');
+      return new Promise((resolve, reject) => {
+        const req = store.add(p);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function getAllProducts() {
+      const tx = db.transaction('products', 'readonly');
+      const store = tx.objectStore('products');
+      return new Promise((resolve, reject) => {
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function init() {
+      try {
+        log('Opening database...');
+        db = await openDB();
+        if (!db) {
+          throw new Error('Database is null after openDB');
+        }
+        log('✅ Database opened, version: ' + db.version);
+        document.getElementById('status').textContent = '✅ Ready';
+        document.getElementById('status').style.color = 'green';
+      } catch (e) {
+        log('❌ Error opening DB: ' + e.message);
+        log('Stack: ' + e.stack);
+        document.getElementById('status').textContent = '❌ Error';
+        document.getElementById('status').style.color = 'red';
+      }
+    }
+
+    document.getElementById('btnTest').addEventListener('click', async () => {
+      try {
+        const testProduct = {
+          partNumber: 'TEST-' + Date.now(),
+          name: 'Test Product',
+          supplier: 'Test Supplier',
+          cost: 10,
+          price: 20,
+          stock: 100,
+          lowThreshold: 5,
+          notes: 'Created by test'
+        };
+        log('Adding product: ' + testProduct.partNumber);
+        const id = await addProduct(testProduct);
+        log('✅ Product added with ID: ' + id);
+      } catch (e) {
+        log('❌ Add failed: ' + e.message);
+      }
+    });
+
+    document.getElementById('btnShow').addEventListener('click', async () => {
+      try {
+        log('Fetching all products...');
+        const products = await getAllProducts();
+        log('Found ' + products.length + ' products:');
+        products.forEach(p => {
+          log(`  - [${p.id}] ${p.partNumber}: ${p.name} (stock: ${p.stock})`);
+        });
+      } catch (e) {
+        log('❌ Fetch failed: ' + e.message);
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "pack:win": "electron-builder -w portable",
+    "pack:win": "electron-builder -w",
     "pack": "electron-builder"
   },
   "devDependencies": {
@@ -15,6 +15,7 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
+    "icon": "icons/logooo.PNG",
     "appId": "com.ajautoparts.inventory",
     "productName": "AJ Autoparts Inventory",
     "files": [
@@ -27,7 +28,7 @@
       "main.js"
     ],
     "win": {
-      "icon": "icons/icon.ico",
+      "icon": "icons/logooo.PNG",
       "target": [
         {
           "target": "nsis",
