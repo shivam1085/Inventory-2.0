@@ -163,6 +163,29 @@ Code signing (optional):
 - Use the “Print Invoice” button after saving an invoice, or “Print” for a draft.
 - Print styles hide the app chrome and format the invoice for A4/Letter.
 
+### What persists / where data lives
+The desktop version still uses the Chromium browser profile’s IndexedDB inside Electron. Each machine keeps its own local data store. To migrate data between PCs, export CSV / XLSX or use Google Sheets backup.
+
+### Updating the desktop app
+1. Pull latest changes (`git pull`).
+2. Re-run `npm install` if dependencies changed.
+3. Rebuild installer: `npm run pack:win`.
+4. Run the new installer; one-click NSIS uninstall/upgrade will replace the previous version.
+
+### Common desktop issues
+- Blank window on start: Delete `%APPDATA%/AJ Autoparts Inventory` (settings cache) if corrupted.
+- Google sign-in popup blocked: Ensure app window is focused; Electron allows popups by default.
+- Camera/barcode not working: Electron may prompt for permission; restart if denied.
+- Slow first launch: Electron unpacks app; subsequent launches are faster.
+
+### Customizing build
+Edit `package.json` > `build` section:
+- `productName`: changes installer/window title.
+- `appId`: unique identifier for Windows registry.
+- Add `extraResources` if you later include external binaries.
+
+For MSI or portable builds, adjust the `win.target` array (currently NSIS x64 + ia32).
+
 ## Data & Limits
 - All data is stored locally in your browser’s IndexedDB. Clearing site data will remove it unless you export/sync.
 - For large datasets, prefer IndexedDB (already used). CSV import handles quoted fields.
