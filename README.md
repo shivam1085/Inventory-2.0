@@ -13,8 +13,24 @@ Branding: AJ Autoparts (Automotive Junction Autoparts)
 
 ## Files
 - `index.html` — UI layout and views
-- `style.css` — Modern black/white/silver theme
-- `app.js` — All logic: IndexedDB, inventory, billing, CSV/.xlsx, Google Sheets
+- `style.css` — Modern design system with indigo/purple gradients, animations, and shadows
+- `app.js` — All logic: IndexedDB, inventory, billing, CSV/.xlsx, Google Sheets (1483 lines)
+- `main.js` — Electron desktop app entry point
+- `service-worker.js` — PWA offline caching (v3)
+- `manifest.json` — PWA configuration
+- `package.json` — NPM dependencies and Electron build config
+
+## Latest Updates (v1.0.0 - Jan 2025)
+- ✅ **Fixed**: IndexedDB CRUD operations (autoIncrement key path constraint)
+- ✅ **Fixed**: Google Sheets import/restore functionality
+- ✅ **Enhanced**: Modern UI with indigo (#6366f1) primary color and purple (#7c3aed) hover
+- ✅ **Enhanced**: Gradient design system with two-tier shadows (--shadow, --shadow-lg)
+- ✅ **Enhanced**: Smooth animations (slideDown, pulse, hover lifts)
+- ✅ **Enhanced**: Tables with sticky headers, zebra striping, better hover states
+- ✅ **Enhanced**: Dialogs with glassmorphism and backdrop blur effects
+- ✅ **Enhanced**: Custom scrollbar styling matching primary theme
+- ✅ **Enhanced**: Mobile-responsive layouts with better touch targets
+- ✅ **Enhanced**: Login screen with modern animations and gradients
 
 ## Quick Start (Offline)
 Just open `index.html` in your browser. Everything works offline using IndexedDB.
