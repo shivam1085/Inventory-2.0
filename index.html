@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Inventory 2.0 — Offline Auto Parts</title>
+  <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f1115" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo">⚙️</div>
+      <div class="title">
+        <h1>Inventory 2.0</h1>
+        <small>AJ Autoparts • Offline-first</small>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Primary">
+      <button class="tab active" data-view="inventory">Inventory</button>
+      <button class="tab" data-view="billing">Billing</button>
+      <button class="tab" data-view="customers">Customers</button>
+      <button class="tab" data-view="suppliers">Suppliers</button>
+      <button class="tab" data-view="export">Export/Import</button>
+      <button class="tab" data-view="sync">Sync</button>
+      <button class="tab" data-view="settings">Settings</button>
+    </nav>
+    <div class="header-actions">
+      <button id="btn-theme" class="ghost" title="Toggle theme">🌙</button>
+    </div>
+  </header>
+
+  <main id="views">
+    <!-- Inventory View -->
+    <section id="view-inventory" class="view active" aria-labelledby="Inventory">
+      <div class="view-header">
+        <h2>Inventory</h2>
+        <div class="inline-stats">
+          <span id="stat-products">0 products</span>
+          <span id="stat-lowstock" class="warn">0 low stock</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="search">
+            <input id="inv-search" type="search" placeholder="Search by part #, name, supplier" />
+          </div>
+          <div class="actions">
+            <button id="btn-add-product" class="primary">Add Product</button>
+            <button id="btn-stock-in" class="secondary">Stock In</button>
+            <button id="btn-stock-out" class="secondary">Stock Out</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="tbl-products">
+            <thead>
+              <tr>
+                <th>Part #</th>
+                <th>Name</th>
+                <th>Supplier</th>
+                <th>Cost</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Low?</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <dialog id="dlg-product" class="dialog">
+        <form method="dialog" id="form-product">
+          <h3 id="dlg-product-title">Add Product</h3>
+          <input type="hidden" id="product-id" />
+          <div class="grid-2">
+            <label>Part Number<input required id="product-partNumber" /></label>
+            <label>Name<input required id="product-name" /></label>
+            <label>Supplier<input id="product-supplier" list="supplier-list" /></label>
+            <label>Stock<input type="number" min="0" step="1" id="product-stock" /></label>
+            <label>Cost<input type="number" min="0" step="0.01" id="product-cost" /></label>
+            <label>Price<input type="number" min="0" step="0.01" id="product-price" /></label>
+            <label>Low Stock Threshold<input type="number" min="0" step="1" id="product-lowThreshold" /></label>
+            <label>Notes<textarea id="product-notes"></textarea></label>
+          </div>
+          <menu>
+            <button value="cancel">Cancel</button>
+            <button value="ok" class="primary">Save</button>
+          </menu>
+        </form>
+      </dialog>
+
+      <dialog id="dlg-stock" class="dialog">
+        <form method="dialog" id="form-stock">
+          <h3 id="dlg-stock-title">Stock In/Out</h3>
+          <div class="grid-2">
+            <label>Part Number<input required id="stock-partNumber" list="product-list" /></label>
+            <label>Quantity<input type="number" min="1" step="1" required id="stock-quantity" /></label>
+            <label>Notes<textarea id="stock-notes"></textarea></label>
+          </div>
+          <menu>
+            <button value="cancel">Cancel</button>
+            <button value="ok" class="primary">Apply</button>
+          </menu>
+        </form>
+      </dialog>
+
+      <datalist id="product-list"></datalist>
+      <datalist id="supplier-list"></datalist>
+    </section>
+
+    <!-- Billing View -->
+    <section id="view-billing" class="view">
+      <div class="view-header">
+        <h2>Billing</h2>
+        <div class="inline-stats">
+          <span id="stat-invoices">0 invoices</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="grid-3">
+            <label>Customer<select id="bill-customer"></select></label>
+            <label>Date<input type="date" id="bill-date" /></label>
+            <label>Invoice #<input id="bill-number" placeholder="Auto" /></label>
+          </div>
+          <div class="grid-3">
+            <label>Product<input id="bill-product" list="product-list" placeholder="Part # or name" /></label>
+            <label>Qty<input type="number" id="bill-qty" min="1" step="1" value="1" /></label>
+            <label>Price<input type="number" id="bill-price" min="0" step="0.01" /></label>
+          </div>
+          <div class="actions">
+            <button id="btn-scan-barcode" class="secondary">Scan Barcode</button>
+            <button id="btn-add-line" class="secondary">Add Line</button>
+            <button id="btn-clear-lines" class="ghost">Clear</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="tbl-bill-lines">
+            <thead>
+              <tr>
+                <th>Part #</th>
+                <th>Name</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="right">Subtotal</td>
+                <td id="bill-subtotal">0.00</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td colspan="4" class="right">Tax (0%)</td>
+                <td id="bill-tax">0.00</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td colspan="4" class="right total">Grand Total</td>
+                <td id="bill-total" class="total">0.00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="actions end">
+          <button id="btn-save-invoice" class="primary">Save Invoice</button>
+          <button id="btn-print-invoice" class="secondary">Print Invoice</button>
+        </div>
+      </div>
+
+      <div class="panel soft">
+        <h3>Recent Invoices</h3>
+        <div class="table-wrap">
+          <table id="tbl-invoices">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Barcode Scanner Dialog -->
+    <dialog id="dlg-scan" class="dialog">
+      <form method="dialog" id="form-scan">
+        <h3>Scan Product Barcode</h3>
+        <div class="grid-2">
+          <div style="grid-column:1/-1">
+            <video id="scan-video" playsinline autoplay style="width:100%; max-height:50vh; background:#000; border-radius:10px; border:1px solid var(--border)"></video>
+          </div>
+          <div style="grid-column:1/-1; color:var(--muted)" id="scan-status">Allow camera access to scan.</div>
+        </div>
+        <menu>
+          <button value="cancel">Close</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <!-- Customers View -->
+    <section id="view-customers" class="view">
+      <div class="view-header">
+        <h2>Customers</h2>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="search">
+            <input id="cust-search" type="search" placeholder="Search customers" />
+          </div>
+          <div class="actions">
+            <button id="btn-add-customer" class="primary">Add Customer</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="tbl-customers">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <dialog id="dlg-customer" class="dialog">
+        <form method="dialog" id="form-customer">
+          <h3 id="dlg-customer-title">Add Customer</h3>
+          <input type="hidden" id="customer-id" />
+          <div class="grid-2">
+            <label>Name<input required id="customer-name" /></label>
+            <label>Phone<input id="customer-phone" /></label>
+            <label>Email<input type="email" id="customer-email" /></label>
+            <label>Address<textarea id="customer-address"></textarea></label>
+            <label>GST/VAT<input id="customer-taxId" /></label>
+            <label>Notes<textarea id="customer-notes"></textarea></label>
+          </div>
+          <menu>
+            <button value="cancel">Cancel</button>
+            <button value="ok" class="primary">Save</button>
+          </menu>
+        </form>
+      </dialog>
+    </section>
+
+    <!-- Suppliers View -->
+    <section id="view-suppliers" class="view">
+      <div class="view-header">
+        <h2>Suppliers</h2>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="search">
+            <input id="supp-search" type="search" placeholder="Search suppliers" />
+          </div>
+          <div class="actions">
+            <button id="btn-add-supplier" class="primary">Add Supplier</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="tbl-suppliers">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <dialog id="dlg-supplier" class="dialog">
+        <form method="dialog" id="form-supplier">
+          <h3 id="dlg-supplier-title">Add Supplier</h3>
+          <input type="hidden" id="supplier-id" />
+          <div class="grid-2">
+            <label>Name<input required id="supplier-name" /></label>
+            <label>Phone<input id="supplier-phone" /></label>
+            <label>Email<input type="email" id="supplier-email" /></label>
+            <label>Address<textarea id="supplier-address"></textarea></label>
+            <label>Notes<textarea id="supplier-notes"></textarea></label>
+          </div>
+          <menu>
+            <button value="cancel">Cancel</button>
+            <button value="ok" class="primary">Save</button>
+          </menu>
+        </form>
+      </dialog>
+    </section>
+
+    <!-- Export/Import View -->
+    <section id="view-export" class="view">
+      <div class="view-header">
+        <h2>Export / Import</h2>
+      </div>
+      <div class="panel">
+        <div class="grid-2">
+          <div>
+            <h3>Export</h3>
+            <div class="grid-2">
+              <button class="secondary" data-export="products">Export Products (CSV)</button>
+              <button class="secondary" data-export="customers">Export Customers (CSV)</button>
+              <button class="secondary" data-export="suppliers">Export Suppliers (CSV)</button>
+              <button class="secondary" data-export="invoices">Export Invoices (CSV)</button>
+            </div>
+            <div class="hint">If SheetJS is loaded, you'll also get .xlsx export.</div>
+          </div>
+          <div>
+            <h3>Import</h3>
+            <div class="grid-2">
+              <label class="file-btn">Import Products<input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import="products" /></label>
+              <label class="file-btn">Import Customers<input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import="customers" /></label>
+              <label class="file-btn">Import Suppliers<input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import="suppliers" /></label>
+              <label class="file-btn">Import Invoices<input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import="invoices" /></label>
+            </div>
+            <div class="hint">CSV columns described in README. .xlsx supported if SheetJS present.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sync View -->
+    <section id="view-sync" class="view">
+      <div class="view-header">
+        <h2>Google Sheets Sync (Optional)</h2>
+      </div>
+      <div class="panel">
+        <div class="grid-3">
+          <div>
+            <h3>Authentication</h3>
+            <div class="actions">
+              <button id="btn-gapi-load" class="secondary">Load Google API</button>
+              <button id="btn-gapi-signin" class="primary" disabled>Sign In</button>
+              <button id="btn-gapi-signout" class="ghost" disabled>Sign Out</button>
+            </div>
+            <div class="hint">Configure OAuth in README. Requires running via http://localhost/</div>
+          </div>
+          <div>
+            <h3>Backup / Restore</h3>
+            <div class="actions">
+              <button id="btn-gs-backup" class="secondary" disabled>Sync/Backup to Google Sheets</button>
+              <button id="btn-gs-restore" class="ghost" disabled>Restore/Import from Google Sheets</button>
+            </div>
+            <div class="hint">Creates a spreadsheet with sheets: Products, Customers, Suppliers, Invoices, InvoiceItems.</div>
+          </div>
+          <div>
+            <h3>Spreadsheet</h3>
+            <div class="grid-2">
+              <label>Spreadsheet ID or URL<input id="gs-sheet-id" placeholder="Paste Google Sheet URL or ID" /></label>
+              <label>&nbsp;<button id="btn-gs-use" class="secondary" disabled>Use This Spreadsheet</button></label>
+            </div>
+            <div class="actions">
+              <button id="btn-gs-create" class="ghost" disabled>Create New Spreadsheet</button>
+              <a id="gs-sheet-link" class="ghost" target="_blank" rel="noopener" style="text-decoration:none">Open Spreadsheet</a>
+            </div>
+            <div class="hint">You can paste an existing Google Sheet URL to sync with it.</div>
+          </div>
+        </div>
+        <pre id="gapi-status" class="status"></pre>
+      </div>
+    </section>
+
+    <!-- Settings View -->
+    <section id="view-settings" class="view">
+      <div class="view-header">
+        <h2>Settings</h2>
+      </div>
+      <div class="panel">
+        <div class="grid-3">
+          <label>Global Low Stock Threshold<input type="number" id="set-low-threshold" min="0" step="1" /></label>
+          <label>Business Name<input id="set-biz-name" placeholder="Auto Parts Co." /></label>
+          <label>Invoice Footer<textarea id="set-invoice-footer" placeholder="Thank you for your business!"></textarea></label>
+        </div>
+        <div class="grid-3">
+          <label>Brand Logo (PNG/JPG)
+            <input type="file" id="set-logo" accept="image/png,image/jpeg" />
+          </label>
+          <div>
+            <div class="hint">Used on invoice print if set.</div>
+            <div style="margin-top:8px"><img id="set-logo-preview" alt="Logo preview" style="max-height:60px; border:1px solid var(--border); border-radius:8px; background:var(--soft)" /></div>
+          </div>
+          <div class="actions">
+            <button id="btn-save-logo" class="secondary">Save Logo</button>
+            <button id="btn-remove-logo" class="ghost">Remove Logo</button>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="btn-save-settings" class="primary">Save Settings</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div>Offline-first • Data stored locally (IndexedDB)</div>
+    <div>Optional backup to Google Sheets</div>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

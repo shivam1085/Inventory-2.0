@@ -1,0 +1,48 @@
+{
+  "name": "aj-autoparts-inventory",
+  "version": "1.0.0",
+  "description": "AJ Autoparts — Offline inventory and billing (Electron desktop)",
+  "main": "main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack:win": "electron-builder -w portable",
+    "pack": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^39.2.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.ajautoparts.inventory",
+    "productName": "AJ Autoparts Inventory",
+    "files": [
+      "index.html",
+      "style.css",
+      "app.js",
+      "manifest.json",
+      "service-worker.js",
+      "icons/**/*",
+      "main.js"
+    ],
+    "win": {
+      "icon": "icons/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "artifactName": "AJ-Autoparts-Inventory-${version}-Setup-${arch}.exe"
+    }
+  }
+}
