@@ -985,7 +985,7 @@
         if(confirm('Delete product?')) del(STORES.products, id).then(()=> reloadProducts())
       }
     })
-    qs('#form-product').addEventListener('submit', (e)=>{ e.preventDefault() })
+    // Allow dialog form submit to close the dialog (returnValue 'ok') so close handler runs
     qs('#dlg-product').addEventListener('close', async (e)=>{
       if(qs('#dlg-product').returnValue==='ok') await saveProductFromDialog()
     })
