@@ -964,12 +964,14 @@
     qs('#dlg-product').addEventListener('close', async (e)=>{
       if(qs('#dlg-product').returnValue==='ok') await saveProductFromDialog()
     })
+    qs('#dlg-product button[value="cancel"]').addEventListener('click', ()=> qs('#dlg-product').close())
     qs('#btn-stock-in').addEventListener('click', ()=>{ qs('#dlg-stock-title').textContent='Stock In'; qs('#dlg-stock').dataset.delta = '1'; qs('#dlg-stock').showModal() })
     qs('#btn-stock-out').addEventListener('click', ()=>{ qs('#dlg-stock-title').textContent='Stock Out'; qs('#dlg-stock').dataset.delta = '-1'; qs('#dlg-stock').showModal() })
     qs('#dlg-stock').addEventListener('close', async ()=>{
       if(qs('#dlg-stock').returnValue==='ok') await applyStock(Number(qs('#dlg-stock').dataset.delta)||1)
       qs('#stock-quantity').value=''; qs('#stock-partNumber').value=''; qs('#stock-notes').value=''
     })
+    qs('#dlg-stock button[value="cancel"]').addEventListener('click', ()=> qs('#dlg-stock').close())
 
     // Customers
     qs('#cust-search').addEventListener('input', renderCustomers)
@@ -984,6 +986,7 @@
       }
     })
     qs('#dlg-customer').addEventListener('close', async ()=>{ if(qs('#dlg-customer').returnValue==='ok') await saveCustomerFromDialog() })
+    qs('#dlg-customer button[value="cancel"]').addEventListener('click', ()=> qs('#dlg-customer').close())
 
     // Suppliers
     qs('#supp-search').addEventListener('input', renderSuppliers)
@@ -998,6 +1001,7 @@
       }
     })
     qs('#dlg-supplier').addEventListener('close', async ()=>{ if(qs('#dlg-supplier').returnValue==='ok') await saveSupplierFromDialog() })
+    qs('#dlg-supplier button[value="cancel"]').addEventListener('click', ()=> qs('#dlg-supplier').close())
 
     // Billing
     qs('#bill-date').value = todayStr()
@@ -1043,6 +1047,7 @@
       const dlg = qs('#dlg-scan'); dlg.showModal(); startScanner().catch(err=> logStatus('Scanner error: '+ errStr(err)))
     })
     qs('#dlg-scan').addEventListener('close', ()=> stopScanner())
+    qs('#dlg-scan button[value="cancel"]').addEventListener('click', ()=> qs('#dlg-scan').close())
 
     // Export/Import
     qsa('[data-export]').forEach(b => b.addEventListener('click', ()=> exportData(b.dataset.export)))
