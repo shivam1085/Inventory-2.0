@@ -116,6 +116,19 @@ tr:hover{background:rgba(255,255,255,0.03)}
 [data-theme="light"] .badge{ background:#eef2f7; color:#111827; border-color:#cbd5e1 }
 [data-theme="light"] .badge.warn{ background:#fff7e6; color:#b45309; border-color:#f5d48a }
 
+/* Login screen */
+.login-screen{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #0e1117 0%, #1a1f2e 100%); z-index:9999}
+[data-theme="light"] .login-screen{background:linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)}
+.login-box{background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:32px; width:100%; max-width:400px; box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+.login-header{text-align:center; margin-bottom:24px}
+.login-header .logo{width:64px; height:64px; margin:0 auto 16px; display:grid; place-items:center; background:var(--soft); border-radius:12px; border:1px solid var(--border); font-size:32px}
+.login-header h1{margin:0 0 4px; font-size:24px}
+.login-header p{margin:0; color:var(--muted)}
+.login-form{display:flex; flex-direction:column; gap:16px}
+.login-form label{display:flex; flex-direction:column; gap:8px; color:var(--text); font-weight:500}
+.login-form input{padding:12px; background:var(--soft); color:var(--text); border:1px solid var(--border); border-radius:10px; font-size:16px}
+.login-form button{padding:12px; font-size:16px; margin-top:8px}
+
 /* Print styles for invoice */
 @media print {
   body { background:#fff; color:#000 }

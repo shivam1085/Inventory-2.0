@@ -28,6 +28,13 @@
     userEmail: null,
     tokenClient: null,
     accessToken: null,
+    isAuthenticated: false,
+  }
+
+  // Simple static auth (change these credentials)
+  const AUTH = {
+    username: 'admin',
+    password: 'admin123'
   }
 
   function todayStr(){
@@ -1088,6 +1095,10 @@
 
     // Theme toggle
     qs('#btn-theme')?.addEventListener('click', toggleTheme)
+
+    // Login/Logout
+    qs('#login-form')?.addEventListener('submit', handleLogin)
+    qs('#btn-logout')?.addEventListener('click', handleLogout)
   }
 
   // ---------- Barcode Scanner ----------
@@ -1167,19 +1178,72 @@
     qs('#bill-qty').focus()
   }
 
+  // ---------- Auth ----------
+  function checkAuth(){
+    const stored = sessionStorage.getItem('authToken')
+    if(stored === btoa(AUTH.username + ':' + AUTH.password)){
+      state.isAuthenticated = true
+      return true
+    }
+    return false
+  }
+
+  function showLoginScreen(){
+    qs('#login-screen').style.display = 'flex'
+    qs('#app-content').style.display = 'none'
+  }
+
+  function showApp(){
+    qs('#login-screen').style.display = 'none'
+    qs('#app-content').style.display = 'block'
+  }
+
+  function handleLogin(e){
+    e.preventDefault()
+    const user = qs('#login-username').value.trim()
+    const pass = qs('#login-password').value.trim()
+    if(user === AUTH.username && pass === AUTH.password){
+      const token = btoa(user + ':' + pass)
+      sessionStorage.setItem('authToken', token)
+      state.isAuthenticated = true
+      showApp()
+      initApp()
+    } else {
+      alert('Invalid username or password')
+      qs('#login-password').value = ''
+    }
+  }
+
+  function handleLogout(){
+    sessionStorage.removeItem('authToken')
+    state.isAuthenticated = false
+    qs('#login-username').value = ''
+    qs('#login-password').value = ''
+    showLoginScreen()
+  }
+
   // ---------- Init ----------
-  async function init(){
+  async function initApp(){
     state.db = await openDB()
     await loadSettings()
     await seedIfEmpty()
     await loadAll()
-    bindEvents()
     renderInventory(); renderCustomers(); renderSuppliers(); renderInvoices(); renderSettings(); resetBill()
     updateSpreadsheetUI()
 
     // Register service worker for PWA/offline caching
     if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       try{ await navigator.serviceWorker.register('./service-worker.js') }catch(e){ /* ignore */ }
+    }
+  }
+
+  async function init(){
+    bindEvents()
+    if(checkAuth()){
+      showApp()
+      await initApp()
+    } else {
+      showLoginScreen()
     }
   }
 

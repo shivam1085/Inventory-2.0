@@ -9,29 +9,54 @@
   <meta name="theme-color" content="#0f1115" />
 </head>
 <body>
-  <header class="app-header">
-    <div class="brand">
-      <div class="logo">⚙️</div>
-      <div class="title">
+  <!-- Login Screen -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-box">
+      <div class="login-header">
+        <div class="logo">⚙️</div>
         <h1>Inventory 2.0</h1>
-        <small>AJ Autoparts • Offline-first</small>
+        <p>AJ Autoparts</p>
       </div>
+      <form id="login-form" class="login-form">
+        <label>
+          Username
+          <input type="text" id="login-username" required autocomplete="username" />
+        </label>
+        <label>
+          Password
+          <input type="password" id="login-password" required autocomplete="current-password" />
+        </label>
+        <button type="submit" class="primary">Sign In</button>
+      </form>
     </div>
-    <nav class="tabs" role="tablist" aria-label="Primary">
-      <button class="tab active" data-view="inventory">Inventory</button>
-      <button class="tab" data-view="billing">Billing</button>
-      <button class="tab" data-view="customers">Customers</button>
-      <button class="tab" data-view="suppliers">Suppliers</button>
-      <button class="tab" data-view="export">Export/Import</button>
-      <button class="tab" data-view="sync">Sync</button>
-      <button class="tab" data-view="settings">Settings</button>
-    </nav>
-    <div class="header-actions">
-      <button id="btn-theme" class="ghost" title="Toggle theme">🌙</button>
-    </div>
-  </header>
+  </div>
 
-  <main id="views">
+  <!-- Main App -->
+  <div id="app-content">
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo">⚙️</div>
+        <div class="title">
+          <h1>Inventory 2.0</h1>
+          <small>AJ Autoparts • Offline-first</small>
+        </div>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Primary">
+        <button class="tab active" data-view="inventory">Inventory</button>
+        <button class="tab" data-view="billing">Billing</button>
+        <button class="tab" data-view="customers">Customers</button>
+        <button class="tab" data-view="suppliers">Suppliers</button>
+        <button class="tab" data-view="export">Export/Import</button>
+        <button class="tab" data-view="sync">Sync</button>
+        <button class="tab" data-view="settings">Settings</button>
+      </nav>
+      <div class="header-actions">
+        <button id="btn-theme" class="ghost" title="Toggle theme">🌙</button>
+        <button id="btn-logout" class="ghost" title="Logout">🚪</button>
+      </div>
+    </header>
+
+    <main id="views">
     <!-- Inventory View -->
     <section id="view-inventory" class="view active" aria-labelledby="Inventory">
       <div class="view-header">
@@ -417,6 +442,7 @@
     <div>Offline-first • Data stored locally (IndexedDB)</div>
     <div>Optional backup to Google Sheets</div>
   </footer>
+  </div>
 
   <script src="app.js" defer></script>
 </body>
