@@ -33,8 +33,8 @@
 
   // Simple static auth (change these credentials)
   const AUTH = {
-    username: 'admin',
-    password: 'admin123'
+    username: 'AJadmin',
+    password: 'AJadmin123'
   }
 
   function todayStr(){
