@@ -204,6 +204,21 @@
     return p || null
   }
 
+  // Abbreviated business name for receipts (avoid long full name)
+  function receiptBusinessName(){
+    const name = state.settings.businessName || 'Invoice'
+    if(name.trim() === 'Automotive Junction Autoparts') return 'AJ Autoparts'
+    if(name.length > 30){
+      const words = name.split(/\s+/).filter(Boolean)
+      if(words.length >= 2){
+        const abbrev = words[0][0] + words[1][0]
+        const tail = words.slice(2).join(' ')
+        return tail ? (abbrev + ' ' + tail) : abbrev
+      }
+    }
+    return name
+  }
+
   function productToRow(p){
     const lowT = (p.lowThreshold ?? state.settings.lowStockThreshold) || 0
     const isLow = (p.stock||0) <= lowT
@@ -504,7 +519,7 @@
         th,td{border-bottom:1px solid #ddd; padding:8px; text-align:left}
         tfoot td{font-weight:700}
       </style></head><body>
-      <div class="head">${logo}<h1>${escapeHtml(state.settings.businessName||'Invoice')}</h1></div>
+      <div class="head">${logo}<h1>${escapeHtml(receiptBusinessName())}</h1></div>
       <div class="muted">Invoice # ${escapeHtml(inv.number)} · ${escapeHtml(inv.date)}</div>
       <div style="margin-top:12px">
         <div><strong>Bill To:</strong> ${escapeHtml(cust?.name || 'Walk-in')}</div>
@@ -1033,7 +1048,7 @@
       const logo = state.settings.logoDataUrl ? `<img src="${state.settings.logoDataUrl}" alt="Logo" style="height:60px; margin-right:16px" />` : ''
       const html = `<!doctype html><html><head><meta charset=\"utf-8\"><title>Invoice ${tmpInv.number}</title>
         <style>body{font-family:Segoe UI, Arial; padding:24px} h1{margin:0} .head{display:flex; align-items:center; gap:16px; margin-bottom:4px} .muted{color:#666} table{width:100%; border-collapse:collapse; margin-top:16px} th,td{border-bottom:1px solid #ddd; padding:8px; text-align:left} tfoot td{font-weight:700}</style></head><body>
-        <div class=\"head\">${logo}<h1>${escapeHtml(state.settings.businessName||'Invoice')}</h1></div>
+        <div class=\"head\">${logo}<h1>${escapeHtml(receiptBusinessName())}</h1></div>
         <div class=\"muted\">Invoice # ${escapeHtml(tmpInv.number)} · ${escapeHtml(tmpInv.date)}</div>
         <div style=\"margin-top:12px\"><div><strong>Bill To:</strong> ${escapeHtml(cust?.name || 'Walk-in')}</div>${cust?.address? `<div>${escapeHtml(cust.address)}</div>`:''}${cust?.phone? `<div>${escapeHtml(cust.phone)}</div>`:''}</div>
         <table><thead><tr><th>Part #</th><th>Name</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>
