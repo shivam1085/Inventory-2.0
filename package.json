@@ -15,7 +15,6 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "icon": "icons/logooo.PNG",
     "appId": "com.ajautoparts.inventory",
     "productName": "AJ Autoparts Inventory",
     "files": [
@@ -24,11 +23,9 @@
       "app.js",
       "manifest.json",
       "service-worker.js",
-      "icons/**/*",
       "main.js"
     ],
     "win": {
-      "icon": "icons/logooo.PNG",
       "target": [
         {
           "target": "nsis",
