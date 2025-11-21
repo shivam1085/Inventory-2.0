@@ -49,16 +49,21 @@ function createWindow(){
     width: 1200,
     height: 800,
     webPreferences: {
-      contextIsolation: true,
-      sandbox: false, // Allow OAuth popups
-      nodeIntegration: false
+      contextIsolation: false,
+      nodeIntegration: false,
+      webSecurity: true
     }
   });
 
   win.removeMenu();
   
   // Always load from localhost server for OAuth compatibility
-  win.loadURL('http://localhost:5501/index.html')
+  win.loadURL('http://localhost:5501/index.html');
+  
+  // Enable right-click menu for debugging
+  win.webContents.on('context-menu', (e, params) => {
+    // Optional: can add dev tools menu here
+  });
 
   // Handle OAuth popups - allow Google domains
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -70,7 +75,8 @@ function createWindow(){
           width: 600,
           height: 700,
           webPreferences: {
-            sandbox: false
+            contextIsolation: false,
+            nodeIntegration: false
           }
         }
       };
@@ -78,6 +84,11 @@ function createWindow(){
     // Open other external links in default browser
     shell.openExternal(url);
     return { action: 'deny' };
+  });
+  
+  // Reload on login error
+  win.webContents.on('did-fail-load', () => {
+    win.loadURL('http://localhost:5501/index.html');
   });
 }
 

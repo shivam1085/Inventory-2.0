@@ -1449,7 +1449,11 @@
       initApp()
     } else {
       alert('Invalid username or password')
+      // Clear both fields to allow retry
+      qs('#login-username').value = ''
       qs('#login-password').value = ''
+      // Focus username field for easy retry
+      qs('#login-username').focus()
     }
   }
 
