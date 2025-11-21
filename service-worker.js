@@ -1,4 +1,4 @@
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 4; // Updated Nov 22, 2025
 const CACHE_NAME = `inventory2-cache-v${CACHE_VERSION}`;
 const ASSETS = [
   './',
