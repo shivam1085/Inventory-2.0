@@ -50,7 +50,8 @@ function createWindow(){
     height: 800,
     webPreferences: {
       contextIsolation: true,
-      sandbox: true
+      sandbox: false, // Allow OAuth popups
+      nodeIntegration: false
     }
   });
 
@@ -59,8 +60,22 @@ function createWindow(){
   // Always load from localhost server for OAuth compatibility
   win.loadURL('http://localhost:5501/index.html')
 
-  // Open external links in default browser
+  // Handle OAuth popups - allow Google domains
   win.webContents.setWindowOpenHandler(({ url }) => {
+    // Allow Google OAuth popups to open in new window
+    if (url.includes('accounts.google.com') || url.includes('googleapis.com')) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 600,
+          height: 700,
+          webPreferences: {
+            sandbox: false
+          }
+        }
+      };
+    }
+    // Open other external links in default browser
     shell.openExternal(url);
     return { action: 'deny' };
   });
