@@ -32,7 +32,23 @@ Branding: AJ Autoparts (Automotive Junction Autoparts)
 - ✅ **Enhanced**: Mobile-responsive layouts with better touch targets
 - ✅ **Enhanced**: Login screen with modern animations and gradients
 
-## Quick Start (Offline)
+## Quick Start
+
+### Option 1: Desktop App (Standalone Executable - Recommended)
+**NO Node.js or npm installation required!**
+
+1. Navigate to: `dist\AJ Autoparts Inventory-win32-x64\`
+2. Double-click: `AJ Autoparts Inventory.exe`
+3. Login with: Username: `AJadmin` | Password: `AJadmin123`
+
+**To share to other PCs:**
+- Copy the entire `AJ Autoparts Inventory-win32-x64` folder
+- Paste it anywhere on the target PC
+- Run the .exe file
+
+See [DESKTOP-BUILD-SUMMARY.md](DESKTOP-BUILD-SUMMARY.md) for full details.
+
+### Option 2: Browser (Offline)
 Just open `index.html` in your browser. Everything works offline using IndexedDB.
 
 Demo data is added on first run (3 products, 2 customers, 2 suppliers).

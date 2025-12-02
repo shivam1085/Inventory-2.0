@@ -8,11 +8,13 @@
   "scripts": {
     "start": "electron .",
     "pack:win": "electron-builder -w",
-    "pack": "electron-builder"
+    "pack": "electron-builder",
+    "package": "electron-packager . \"AJ Autoparts Inventory\" --platform=win32 --arch=x64 --out=dist --overwrite"
   },
   "devDependencies": {
     "electron": "^39.2.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
   },
   "build": {
     "appId": "com.ajautoparts.inventory",
@@ -28,10 +30,9 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
+          "target": "portable",
           "arch": [
-            "x64",
-            "ia32"
+            "x64"
           ]
         }
       ]
